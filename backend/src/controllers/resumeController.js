@@ -1,24 +1,9 @@
-const crypto = require('crypto');
-const path = require('path');
 const { pool } = require('../config/db');
 const storage = require('../services/storage');
 const resumeProcessingService = require('../services/resumeProcessingService');
+const { saveResumeVersion } = require('../services/resumeStorageService');
+const { assertValidPdf } = require('../utils/pdfValidation');
 const { AppError } = require('../utils/AppError');
-
-const PDF_MAGIC_BYTES = '%PDF-';
-
-function assertValidPdf(file) {
-  if (!file) {
-    throw new AppError('resume file is required', 400);
-  }
-  if (file.mimetype !== 'application/pdf') {
-    throw new AppError('Only PDF files are allowed', 400);
-  }
-  const header = file.buffer.slice(0, 5).toString('ascii');
-  if (header !== PDF_MAGIC_BYTES) {
-    throw new AppError('Uploaded file is not a valid PDF', 400);
-  }
-}
 
 async function findOrCreateCandidate(client, organizationId, body) {
   const { candidateId, name, email, phone, location, linkedinUrl, githubUrl, portfolioUrl } = body;
@@ -79,40 +64,21 @@ async function uploadResume(req, res, next) {
 
     const candidate = await findOrCreateCandidate(client, req.user.organizationId, req.body);
 
-    const versionResult = await client.query(
-      'SELECT COALESCE(MAX(version), 0) AS max_version FROM resumes WHERE candidate_id = $1',
-      [candidate.id]
-    );
-    const nextVersion = versionResult.rows[0].max_version + 1;
-
-    await client.query('UPDATE resumes SET is_active = false WHERE candidate_id = $1 AND is_active = true', [
-      candidate.id,
-    ]);
-
-    const ext = path.extname(req.file.originalname) || '.pdf';
-    const storageKey = `resumes/${candidate.id}/${crypto.randomUUID()}${ext}`;
-    await storage.save(req.file.buffer, storageKey);
+    const { resume, storageKey } = await saveResumeVersion(client, candidate.id, req.file);
     savedStorageKey = storageKey;
-
-    const { rows } = await client.query(
-      `INSERT INTO resumes (candidate_id, storage_key, file_name, mime_type, file_size, version, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, true)
-       RETURNING id, candidate_id, file_name, mime_type, file_size, version, is_active, created_at`,
-      [candidate.id, storageKey, req.file.originalname, req.file.mimetype, req.file.size, nextVersion]
-    );
 
     await client.query('COMMIT');
 
     let processing;
     try {
-      const result = await resumeProcessingService.processResume(rows[0].id);
+      const result = await resumeProcessingService.processResume(resume.id);
       processing = { status: 'ok', profile: result.profile };
     } catch (err) {
       console.error('Resume AI processing failed:', err.message);
       processing = { status: 'failed', message: err.message };
     }
 
-    res.status(201).json({ status: 'ok', candidate, resume: rows[0], processing });
+    res.status(201).json({ status: 'ok', candidate, resume, processing });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     if (savedStorageKey) {

@@ -99,4 +99,4 @@ async function searchCandidatePool(organizationId, { jdText, retrievalLimit, top
   };
 }
 
-module.exports = { searchCandidatePool };
+module.exports = { searchCandidatePool, buildJdEmbeddingText };
