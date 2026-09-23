@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const storage = require('../services/storage');
 const { AppError } = require('../utils/AppError');
 
 const UPDATABLE_FIELDS = [
@@ -22,23 +23,32 @@ async function listCandidates(req, res, next) {
     const pageSize = Math.min(Math.max(parseInt(req.query.pageSize, 10) || 20, 1), 100);
     const offset = (page - 1) * pageSize;
     const search = req.query.q ? `%${req.query.q}%` : null;
+    const archived = req.query.status === 'archived';
+    const minExperience = req.query.minExperience !== undefined ? Number(req.query.minExperience) : null;
+    const maxExperience = req.query.maxExperience !== undefined ? Number(req.query.maxExperience) : null;
+
+    const deletedClause = archived ? 'c.deleted_at IS NOT NULL' : 'c.deleted_at IS NULL';
 
     const { rows } = await pool.query(
       `SELECT c.*,
         (SELECT COUNT(*) FROM resumes r WHERE r.candidate_id = c.id AND r.deleted_at IS NULL)::int AS resume_count
        FROM candidates c
-       WHERE c.organization_id = $1 AND c.deleted_at IS NULL
+       WHERE c.organization_id = $1 AND ${deletedClause}
          AND ($2::text IS NULL OR c.name ILIKE $2 OR c.email ILIKE $2)
+         AND ($3::numeric IS NULL OR c.total_experience >= $3)
+         AND ($4::numeric IS NULL OR c.total_experience <= $4)
        ORDER BY c.created_at DESC
-       LIMIT $3 OFFSET $4`,
-      [req.user.organizationId, search, pageSize, offset]
+       LIMIT $5 OFFSET $6`,
+      [req.user.organizationId, search, minExperience, maxExperience, pageSize, offset]
     );
 
     const countResult = await pool.query(
       `SELECT COUNT(*)::int AS total FROM candidates c
-       WHERE c.organization_id = $1 AND c.deleted_at IS NULL
-         AND ($2::text IS NULL OR c.name ILIKE $2 OR c.email ILIKE $2)`,
-      [req.user.organizationId, search]
+       WHERE c.organization_id = $1 AND ${deletedClause}
+         AND ($2::text IS NULL OR c.name ILIKE $2 OR c.email ILIKE $2)
+         AND ($3::numeric IS NULL OR c.total_experience >= $3)
+         AND ($4::numeric IS NULL OR c.total_experience <= $4)`,
+      [req.user.organizationId, search, minExperience, maxExperience]
     );
 
     res.json({
@@ -71,7 +81,19 @@ async function getCandidate(req, res, next) {
       [id]
     );
 
-    res.json({ status: 'ok', candidate: { ...candidate, resumes: resumesResult.rows } });
+    const applicationsResult = await pool.query(
+      `SELECT a.id, a.status, a.submitted_at, j.id AS job_id, j.title AS job_title, j.slug AS job_slug
+       FROM applications a
+       JOIN jobs j ON j.id = a.job_id
+       WHERE a.candidate_id = $1
+       ORDER BY a.submitted_at DESC`,
+      [id]
+    );
+
+    res.json({
+      status: 'ok',
+      candidate: { ...candidate, resumes: resumesResult.rows, applications: applicationsResult.rows },
+    });
   } catch (err) {
     next(err);
   }
@@ -140,4 +162,70 @@ async function deleteCandidate(req, res, next) {
   }
 }
 
-module.exports = { listCandidates, getCandidate, updateCandidate, deleteCandidate };
+async function restoreCandidate(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const { rows } = await pool.query(
+      `UPDATE candidates SET deleted_at = NULL, updated_at = now()
+       WHERE id = $1 AND organization_id = $2 AND deleted_at IS NOT NULL
+       RETURNING *`,
+      [id, req.user.organizationId]
+    );
+    if (rows.length === 0) {
+      throw new AppError('Deleted candidate not found', 404);
+    }
+
+    res.json({ status: 'ok', candidate: rows[0] });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function permanentlyDeleteCandidate(req, res, next) {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+
+    await client.query('BEGIN');
+
+    const ownershipResult = await client.query(
+      'SELECT id FROM candidates WHERE id = $1 AND organization_id = $2 FOR UPDATE',
+      [id, req.user.organizationId]
+    );
+    if (!ownershipResult.rows[0]) {
+      throw new AppError('Candidate not found', 404);
+    }
+
+    const resumesResult = await client.query('SELECT storage_key FROM resumes WHERE candidate_id = $1', [id]);
+    const storageKeys = resumesResult.rows.map((r) => r.storage_key);
+
+    await client.query('DELETE FROM candidates WHERE id = $1', [id]);
+
+    await client.query('COMMIT');
+
+    await Promise.all(
+      storageKeys.map((key) =>
+        storage.remove(key).catch((err) => {
+          console.error('Failed to remove resume file from storage during candidate purge:', err.message);
+        })
+      )
+    );
+
+    res.json({ status: 'ok' });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = {
+  listCandidates,
+  getCandidate,
+  updateCandidate,
+  deleteCandidate,
+  restoreCandidate,
+  permanentlyDeleteCandidate,
+};

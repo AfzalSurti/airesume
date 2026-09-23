@@ -114,6 +114,7 @@ async function processResumeRoute(req, res, next) {
 async function listCandidateResumes(req, res, next) {
   try {
     const { id } = req.params;
+    const includeDeleted = req.query.includeDeleted === 'true';
 
     const candidateResult = await pool.query(
       'SELECT id FROM candidates WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL',
@@ -124,8 +125,8 @@ async function listCandidateResumes(req, res, next) {
     }
 
     const { rows } = await pool.query(
-      `SELECT id, file_name, mime_type, file_size, version, is_active, created_at
-       FROM resumes WHERE candidate_id = $1 AND deleted_at IS NULL
+      `SELECT id, file_name, mime_type, file_size, version, is_active, created_at, deleted_at
+       FROM resumes WHERE candidate_id = $1 ${includeDeleted ? '' : 'AND deleted_at IS NULL'}
        ORDER BY version DESC`,
       [id]
     );
@@ -144,7 +145,7 @@ async function downloadResume(req, res, next) {
       `SELECT r.id, r.storage_key, r.file_name, r.mime_type
        FROM resumes r
        JOIN candidates c ON c.id = r.candidate_id
-       WHERE r.id = $1 AND c.organization_id = $2 AND r.deleted_at IS NULL`,
+       WHERE r.id = $1 AND c.organization_id = $2`,
       [id, req.user.organizationId]
     );
     const resume = rows[0];
@@ -161,6 +162,17 @@ async function downloadResume(req, res, next) {
   }
 }
 
+async function promoteNextActiveResume(client, candidateId) {
+  const nextResult = await client.query(
+    `SELECT id FROM resumes WHERE candidate_id = $1 AND deleted_at IS NULL
+     ORDER BY version DESC LIMIT 1`,
+    [candidateId]
+  );
+  if (nextResult.rows[0]) {
+    await client.query('UPDATE resumes SET is_active = true WHERE id = $1', [nextResult.rows[0].id]);
+  }
+}
+
 async function deleteResume(req, res, next) {
   const client = await pool.connect();
   try {
@@ -169,7 +181,7 @@ async function deleteResume(req, res, next) {
     await client.query('BEGIN');
 
     const { rows } = await client.query(
-      `SELECT r.id, r.candidate_id, r.storage_key, r.is_active
+      `SELECT r.id, r.candidate_id, r.is_active
        FROM resumes r
        JOIN candidates c ON c.id = r.candidate_id
        WHERE r.id = $1 AND c.organization_id = $2 AND r.deleted_at IS NULL
@@ -181,17 +193,71 @@ async function deleteResume(req, res, next) {
       throw new AppError('Resume not found', 404);
     }
 
+    await client.query(
+      'UPDATE resumes SET deleted_at = now(), is_active = false, updated_at = now() WHERE id = $1',
+      [id]
+    );
+
+    if (resume.is_active) {
+      await promoteNextActiveResume(client, resume.candidate_id);
+    }
+
+    await client.query('COMMIT');
+
+    res.json({ status: 'ok' });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
+}
+
+async function restoreResume(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const { rows } = await pool.query(
+      `UPDATE resumes r SET deleted_at = NULL, updated_at = now()
+       FROM candidates c
+       WHERE r.id = $1 AND r.candidate_id = c.id AND c.organization_id = $2 AND r.deleted_at IS NOT NULL
+       RETURNING r.*`,
+      [id, req.user.organizationId]
+    );
+    if (rows.length === 0) {
+      throw new AppError('Deleted resume not found', 404);
+    }
+
+    res.json({ status: 'ok', resume: rows[0] });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function permanentlyDeleteResume(req, res, next) {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+
+    await client.query('BEGIN');
+
+    const { rows } = await client.query(
+      `SELECT r.id, r.candidate_id, r.storage_key, r.is_active
+       FROM resumes r
+       JOIN candidates c ON c.id = r.candidate_id
+       WHERE r.id = $1 AND c.organization_id = $2
+       FOR UPDATE OF r`,
+      [id, req.user.organizationId]
+    );
+    const resume = rows[0];
+    if (!resume) {
+      throw new AppError('Resume not found', 404);
+    }
+
     await client.query('DELETE FROM resumes WHERE id = $1', [id]);
 
     if (resume.is_active) {
-      const nextResult = await client.query(
-        `SELECT id FROM resumes WHERE candidate_id = $1 AND deleted_at IS NULL
-         ORDER BY version DESC LIMIT 1`,
-        [resume.candidate_id]
-      );
-      if (nextResult.rows[0]) {
-        await client.query('UPDATE resumes SET is_active = true WHERE id = $1', [nextResult.rows[0].id]);
-      }
+      await promoteNextActiveResume(client, resume.candidate_id);
     }
 
     await client.query('COMMIT');
@@ -209,4 +275,12 @@ async function deleteResume(req, res, next) {
   }
 }
 
-module.exports = { uploadResume, processResumeRoute, listCandidateResumes, downloadResume, deleteResume };
+module.exports = {
+  uploadResume,
+  processResumeRoute,
+  listCandidateResumes,
+  downloadResume,
+  deleteResume,
+  restoreResume,
+  permanentlyDeleteResume,
+};
