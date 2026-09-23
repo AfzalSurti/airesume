@@ -1,35 +1,42 @@
-import { useEffect, useState } from 'react'
-import './App.css'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import { ProtectedRoute } from './components/ProtectedRoute'
+import { Layout } from './components/Layout'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
+import DashboardPage from './pages/DashboardPage'
+import JobsListPage from './pages/JobsListPage'
+import JobFormPage from './pages/JobFormPage'
+import JobDetailPage from './pages/JobDetailPage'
+import CandidatesListPage from './pages/CandidatesListPage'
+import CandidateDetailPage from './pages/CandidateDetailPage'
+import MatchingPage from './pages/MatchingPage'
+import PublicApplyPage from './pages/PublicApplyPage'
 
 function App() {
-  const [status, setStatus] = useState({ state: 'loading' })
-
-  useEffect(() => {
-    fetch(`${API_URL}/api/health`)
-      .then((res) => res.json())
-      .then((data) => setStatus({ state: 'ok', data }))
-      .catch((err) => setStatus({ state: 'error', message: err.message }))
-  }, [])
-
   return (
-    <section id="center">
-      <h1>AI Recruitment System</h1>
-      <p>Frontend is running. Checking backend connection…</p>
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/apply/:slug" element={<PublicApplyPage />} />
 
-      {status.state === 'loading' && <p>Contacting backend…</p>}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<Layout />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/jobs" element={<JobsListPage />} />
+            <Route path="/jobs/new" element={<JobFormPage />} />
+            <Route path="/jobs/:id" element={<JobDetailPage />} />
+            <Route path="/candidates" element={<CandidatesListPage />} />
+            <Route path="/candidates/:id" element={<CandidateDetailPage />} />
+            <Route path="/matching" element={<MatchingPage />} />
+          </Route>
+        </Route>
 
-      {status.state === 'ok' && (
-        <pre>{JSON.stringify(status.data, null, 2)}</pre>
-      )}
-
-      {status.state === 'error' && (
-        <p style={{ color: 'crimson' }}>
-          Could not reach backend at {API_URL}: {status.message}
-        </p>
-      )}
-    </section>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </AuthProvider>
   )
 }
 

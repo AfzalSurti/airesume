@@ -1,7 +1,7 @@
 const express = require('express');
 const { pool } = require('../config/db');
 
-const router = express.Router();
+const router = express.Router();/*  */
 
 router.get('/health', async (req, res) => {
   try {
