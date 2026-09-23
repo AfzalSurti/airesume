@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { ThemeToggle } from './ThemeToggle'
 
 export function Layout() {
   const { user, logout } = useAuth()
@@ -23,6 +24,7 @@ export function Layout() {
           </NavLink>
         </nav>
         <div className="sidebar-footer">
+          <ThemeToggle className="btn-block" />
           <div className="user-info">
             <div className="user-name">{user?.name}</div>
             <div className="user-role">{user?.role}</div>

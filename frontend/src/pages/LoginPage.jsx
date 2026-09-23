@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { ThemeToggle } from '../components/ThemeToggle'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -26,6 +27,7 @@ export default function LoginPage() {
 
   return (
     <div className="auth-page">
+      <ThemeToggle className="auth-theme-toggle" />
       <form className="auth-card" onSubmit={handleSubmit}>
         <h1>AI Recruiter</h1>
         <p className="auth-subtitle">Sign in to your organization</p>

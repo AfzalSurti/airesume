@@ -19,7 +19,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --text: #a1a1aa;
     --text-h: #f4f4f5;
     --bg: #0f0f13;
@@ -38,6 +38,24 @@
   }
 }
 
+:root[data-theme='dark'] {
+  --text: #a1a1aa;
+  --text-h: #f4f4f5;
+  --bg: #0f0f13;
+  --surface: #18181d;
+  --border: #2b2b33;
+  --accent: #818cf8;
+  --accent-hover: #a5b4fc;
+  --accent-bg: rgba(129, 140, 248, 0.15);
+  --danger: #f87171;
+  --danger-bg: rgba(248, 113, 113, 0.12);
+  --success: #4ade80;
+  --success-bg: rgba(74, 222, 128, 0.12);
+  --warning: #fbbf24;
+  --warning-bg: rgba(251, 191, 36, 0.12);
+  --shadow: rgba(0, 0, 0, 0.4) 0 1px 3px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -47,6 +65,29 @@ body {
   font: 15px/1.5 var(--sans);
   color: var(--text);
   background: var(--bg);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.theme-toggle {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-h);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.theme-toggle:hover {
+  background: var(--accent-bg);
+}
+
+.page-topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
 }
 
 h1,
@@ -176,6 +217,13 @@ p {
   align-items: center;
   justify-content: center;
   background: var(--bg);
+  position: relative;
+}
+
+.auth-theme-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
 }
 
 .auth-card {

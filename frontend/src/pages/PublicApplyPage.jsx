@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { API_URL } from '../api/client'
+import { ThemeToggle } from '../components/ThemeToggle'
 
 export default function PublicApplyPage() {
   const { slug } = useParams()
@@ -96,6 +97,9 @@ export default function PublicApplyPage() {
   if (loadError) {
     return (
       <div className="public-page">
+        <div className="page-topbar">
+          <ThemeToggle />
+        </div>
         <div className="alert alert-error">{loadError}</div>
       </div>
     )
@@ -104,6 +108,9 @@ export default function PublicApplyPage() {
   if (!job) {
     return (
       <div className="public-page">
+        <div className="page-topbar">
+          <ThemeToggle />
+        </div>
         <p className="text-muted">Loading…</p>
       </div>
     )
@@ -112,6 +119,9 @@ export default function PublicApplyPage() {
   if (submitted) {
     return (
       <div className="public-page">
+        <div className="page-topbar">
+          <ThemeToggle />
+        </div>
         <div className="card">
           <h1>Application submitted</h1>
           <p>Thanks for applying to {job.title}. We'll be in touch if there's a match.</p>
@@ -122,6 +132,9 @@ export default function PublicApplyPage() {
 
   return (
     <div className="public-page">
+      <div className="page-topbar">
+        <ThemeToggle />
+      </div>
       <div className="card">
         <h1>{job.title}</h1>
         <p className="text-muted">
