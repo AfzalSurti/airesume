@@ -4,6 +4,8 @@ const cookieParser = require('cookie-parser');
 
 const healthRoutes = require('./routes/health');
 const authRoutes = require('./routes/auth');
+const candidateRoutes = require('./routes/candidates');
+const resumeRoutes = require('./routes/resumes');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -14,6 +16,8 @@ app.use(cookieParser());
 
 app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/candidates', candidateRoutes);
+app.use('/api/resumes', resumeRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ status: 'error', message: 'Not found' });

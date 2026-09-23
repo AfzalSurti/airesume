@@ -1,5 +1,5 @@
 function errorHandler(err, req, res, next) {
-  const statusCode = err.statusCode || 500;
+  const statusCode = err.statusCode || (err.name === 'MulterError' ? 400 : 500);
 
   if (statusCode >= 500) {
     console.error(err);
