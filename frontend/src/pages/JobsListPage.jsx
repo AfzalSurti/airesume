@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Plus, Search, Briefcase } from 'lucide-react'
 import { api } from '../api/client'
 import { StatusBadge } from '../components/StatusBadge'
+import { EmptyState } from '../components/EmptyState'
+import { Spinner } from '../components/Spinner'
 
 export default function JobsListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -39,25 +42,28 @@ export default function JobsListPage() {
       <div className="page-header">
         <h1>Jobs</h1>
         <Link to="/jobs/new" className="btn btn-primary">
-          + New Job
+          <Plus size={16} />
+          New Job
         </Link>
       </div>
 
       <div className="toolbar">
-        <input
-          className="search-input"
-          placeholder="Search by title…"
-          defaultValue={q}
-          onChange={(e) => {
-            const value = e.target.value
-            setSearchParams((prev) => {
-              const next = new URLSearchParams(prev)
-              if (value) next.set('q', value)
-              else next.delete('q')
-              return next
-            })
-          }}
-        />
+        <div className="search-wrap">
+          <Search size={15} />
+          <input
+            placeholder="Search by title…"
+            defaultValue={q}
+            onChange={(e) => {
+              const value = e.target.value
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev)
+                if (value) next.set('q', value)
+                else next.delete('q')
+                return next
+              })
+            }}
+          />
+        </div>
         <select
           value={status}
           onChange={(e) => {
@@ -79,9 +85,15 @@ export default function JobsListPage() {
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
-      {loading && <p className="text-muted">Loading…</p>}
+      {loading && <Spinner label="Loading jobs…" />}
 
-      {!loading && jobs.length === 0 && <p className="text-muted">No jobs found.</p>}
+      {!loading && jobs.length === 0 && (
+        <EmptyState
+          icon={Briefcase}
+          title="No jobs found"
+          subtitle={q || status ? 'Try adjusting your search or filters.' : 'Create your first job to get started.'}
+        />
+      )}
 
       {!loading && jobs.length > 0 && (
         <table className="table">
@@ -112,7 +124,7 @@ export default function JobsListPage() {
         </table>
       )}
 
-      {!loading && <p className="text-muted">{total} total</p>}
+      {!loading && jobs.length > 0 && <p className="text-muted">{total} total</p>}
     </div>
   )
 }

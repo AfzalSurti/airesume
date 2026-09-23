@@ -1,6 +1,10 @@
 import { useState } from 'react'
+import { Search, Sparkles, UserX } from 'lucide-react'
 import { api } from '../api/client'
 import { StatusBadge } from '../components/StatusBadge'
+import { Avatar } from '../components/Avatar'
+import { ScoreRing } from '../components/ScoreRing'
+import { EmptyState } from '../components/EmptyState'
 
 export default function MatchingPage() {
   const [jdText, setJdText] = useState('')
@@ -38,6 +42,7 @@ export default function MatchingPage() {
           required
         />
         <button type="submit" className="btn btn-primary" disabled={loading}>
+          {loading ? <span className="spinner" /> : <Search size={16} />}
           {loading ? 'Searching…' : 'Search'}
         </button>
       </form>
@@ -47,7 +52,10 @@ export default function MatchingPage() {
       {result && (
         <>
           <div className="card">
-            <h3>AI understood this JD as:</h3>
+            <h3>
+              <Sparkles size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: -2 }} />
+              AI understood this JD as
+            </h3>
             <p>
               <strong>{result.structuredJd.job_title}</strong>
               {result.structuredJd.required_experience_years != null &&
@@ -72,17 +80,22 @@ export default function MatchingPage() {
             requirement screening, showing top {result.results.length}.
           </p>
 
-          {result.results.length === 0 && <p className="text-muted">No matching candidates found in your pool.</p>}
+          {result.results.length === 0 && (
+            <EmptyState icon={UserX} title="No matching candidates" subtitle="Try a broader job description, or add more resumes to your pool." />
+          )}
 
           {result.results.map((r) => (
             <div key={r.candidateId} className="card list-card">
               <div className="list-card-row" onClick={() => setExpandedId(expandedId === r.candidateId ? null : r.candidateId)}>
-                <div>
-                  <strong>{r.name}</strong>
-                  <div className="text-muted">{r.email}</div>
+                <div className="list-card-identity">
+                  <Avatar name={r.name} size="sm" />
+                  <div>
+                    <strong>{r.name}</strong>
+                    <div className="text-muted">{r.email}</div>
+                  </div>
                 </div>
                 <div className="score-cell">
-                  <span className="score-big">{r.overall_score}</span>
+                  <ScoreRing score={r.overall_score} />
                   <StatusBadge status={r.recommendation} />
                 </div>
               </div>

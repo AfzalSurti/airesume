@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Search, Users } from 'lucide-react'
 import { api } from '../api/client'
+import { Avatar } from '../components/Avatar'
+import { EmptyState } from '../components/EmptyState'
+import { Spinner } from '../components/Spinner'
 
 export default function CandidatesListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -49,12 +53,14 @@ export default function CandidatesListPage() {
       </div>
 
       <div className="toolbar">
-        <input
-          className="search-input"
-          placeholder="Search by name or email…"
-          defaultValue={q}
-          onChange={(e) => updateParam('q', e.target.value)}
-        />
+        <div className="search-wrap">
+          <Search size={15} />
+          <input
+            placeholder="Search by name or email…"
+            defaultValue={q}
+            onChange={(e) => updateParam('q', e.target.value)}
+          />
+        </div>
         <select value={status} onChange={(e) => updateParam('status', e.target.value)}>
           <option value="">Active</option>
           <option value="archived">Archived</option>
@@ -62,8 +68,15 @@ export default function CandidatesListPage() {
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
-      {loading && <p className="text-muted">Loading…</p>}
-      {!loading && candidates.length === 0 && <p className="text-muted">No candidates found.</p>}
+      {loading && <Spinner label="Loading candidates…" />}
+
+      {!loading && candidates.length === 0 && (
+        <EmptyState
+          icon={Users}
+          title="No candidates found"
+          subtitle={q ? 'Try a different search.' : 'Upload a resume to start building your pool.'}
+        />
+      )}
 
       {!loading && candidates.length > 0 && (
         <table className="table">
@@ -80,7 +93,10 @@ export default function CandidatesListPage() {
             {candidates.map((c) => (
               <tr key={c.id}>
                 <td>
-                  <Link to={`/candidates/${c.id}`}>{c.name}</Link>
+                  <div className="table-name-cell">
+                    <Avatar name={c.name} size="sm" />
+                    <Link to={`/candidates/${c.id}`}>{c.name}</Link>
+                  </div>
                 </td>
                 <td>{c.email || '—'}</td>
                 <td>{c.total_experience != null ? `${c.total_experience} yrs` : '—'}</td>
@@ -92,7 +108,7 @@ export default function CandidatesListPage() {
         </table>
       )}
 
-      {!loading && <p className="text-muted">{total} total</p>}
+      {!loading && candidates.length > 0 && <p className="text-muted">{total} total</p>}
     </div>
   )
 }

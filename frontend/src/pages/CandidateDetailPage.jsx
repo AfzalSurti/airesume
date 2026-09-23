@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Eye, Archive, RotateCcw, Trash2, Upload, FileText, Briefcase, Ban } from 'lucide-react'
 import { api } from '../api/client'
 import { StatusBadge } from '../components/StatusBadge'
+import { Avatar } from '../components/Avatar'
+import { EmptyState } from '../components/EmptyState'
+import { Spinner } from '../components/Spinner'
 
 export default function CandidateDetailPage() {
   const { id } = useParams()
@@ -88,17 +92,21 @@ export default function CandidateDetailPage() {
   }
 
   if (error && !candidate) return <div className="alert alert-error">{error}</div>
-  if (!candidate) return <p className="text-muted">Loading…</p>
+  if (!candidate) return <Spinner label="Loading candidate…" />
 
   return (
     <div>
       <div className="page-header">
-        <div>
-          <h1>{candidate.name}</h1>
-          {candidate.deleted_at && <span className="badge badge-archived">Archived</span>}
+        <div className="list-card-identity">
+          <Avatar name={candidate.name} />
+          <div>
+            <h1 style={{ marginBottom: 4 }}>{candidate.name}</h1>
+            {candidate.deleted_at && <span className="badge badge-archived">Archived</span>}
+          </div>
         </div>
         {!candidate.deleted_at && (
           <button type="button" className="btn btn-danger-outline" onClick={handleArchiveCandidate}>
+            <Archive size={15} />
             Archive candidate
           </button>
         )}
@@ -152,6 +160,7 @@ export default function CandidateDetailPage() {
       <h2>Resumes</h2>
       <div className="card">
         <label className="btn btn-secondary btn-inline">
+          <Upload size={15} />
           {uploading ? 'Uploading…' : 'Upload new version'}
           <input
             ref={fileInputRef}
@@ -164,32 +173,39 @@ export default function CandidateDetailPage() {
         </label>
       </div>
 
-      {candidate.resumes.length === 0 && <p className="text-muted">No resumes.</p>}
+      {candidate.resumes.length === 0 && <EmptyState icon={FileText} title="No resumes" subtitle="Upload one above." />}
 
       {candidate.resumes.map((r) => (
         <div key={r.id} className="card list-card">
           <div className="list-card-row">
-            <div>
-              <strong>
-                v{r.version} {r.is_active && <span className="badge badge-published">Active</span>}
-              </strong>
-              <div className="text-muted">{r.file_name}</div>
+            <div className="list-card-identity">
+              <FileText size={18} className="text-muted" />
+              <div>
+                <strong>
+                  v{r.version} {r.is_active && <span className="badge badge-published">Active</span>}
+                </strong>
+                <div className="text-muted">{r.file_name}</div>
+              </div>
             </div>
             <div className="list-card-actions">
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleViewResume(r.id)}>
+                <Eye size={13} />
                 View
               </button>
               {!r.deleted_at && (
                 <button type="button" className="btn btn-danger-outline btn-sm" onClick={() => handleArchiveResume(r.id)}>
+                  <Archive size={13} />
                   Archive
                 </button>
               )}
               {r.deleted_at && (
                 <>
                   <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleRestoreResume(r.id)}>
+                    <RotateCcw size={13} />
                     Restore
                   </button>
                   <button type="button" className="btn btn-danger btn-sm" onClick={() => handlePurgeResume(r.id)}>
+                    <Trash2 size={13} />
                     Delete forever
                   </button>
                 </>
@@ -200,11 +216,16 @@ export default function CandidateDetailPage() {
       ))}
 
       <h2>Application History</h2>
-      {candidate.applications.length === 0 && <p className="text-muted">No applications yet.</p>}
+      {candidate.applications.length === 0 && (
+        <EmptyState icon={Ban} title="No applications yet" subtitle="This candidate hasn't applied to any job." />
+      )}
       {candidate.applications.map((a) => (
         <div key={a.id} className="card list-card">
           <div className="list-card-row">
-            <Link to={`/jobs/${a.job_id}`}>{a.job_title}</Link>
+            <div className="list-card-identity">
+              <Briefcase size={16} className="text-muted" />
+              <Link to={`/jobs/${a.job_id}`}>{a.job_title}</Link>
+            </div>
             <StatusBadge status={a.status} />
           </div>
         </div>

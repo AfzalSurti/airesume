@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Users, Briefcase, FolderOpen, Plus, Search } from 'lucide-react'
 import { api } from '../api/client'
 import { useAuth } from '../hooks/useAuth'
 
@@ -30,20 +31,31 @@ export default function DashboardPage() {
   return (
     <div>
       <h1>Welcome, {user?.name}</h1>
-      <p className="text-muted">{user?.role} · Dashboard</p>
+      <p className="text-muted">
+        {user?.role} · Dashboard
+      </p>
 
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="stat-grid">
         <Link to="/candidates" className="stat-card">
+          <div className="stat-icon">
+            <Users size={18} />
+          </div>
           <div className="stat-value">{stats ? stats.candidates : '—'}</div>
           <div className="stat-label">Candidates in pool</div>
         </Link>
         <Link to="/jobs?status=PUBLISHED" className="stat-card">
+          <div className="stat-icon">
+            <FolderOpen size={18} />
+          </div>
           <div className="stat-value">{stats ? stats.publishedJobs : '—'}</div>
           <div className="stat-label">Published jobs</div>
         </Link>
         <Link to="/jobs" className="stat-card">
+          <div className="stat-icon">
+            <Briefcase size={18} />
+          </div>
           <div className="stat-value">{stats ? stats.totalJobs : '—'}</div>
           <div className="stat-label">Total jobs</div>
         </Link>
@@ -51,9 +63,11 @@ export default function DashboardPage() {
 
       <div className="quick-actions">
         <Link to="/jobs/new" className="btn btn-primary">
-          + New Job
+          <Plus size={16} />
+          New Job
         </Link>
         <Link to="/matching" className="btn btn-secondary">
+          <Search size={16} />
           Search Resume Pool
         </Link>
       </div>

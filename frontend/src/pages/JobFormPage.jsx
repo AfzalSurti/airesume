@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Plus } from 'lucide-react'
 import { api } from '../api/client'
 
 export default function JobFormPage() {
@@ -98,6 +99,7 @@ export default function JobFormPage() {
         </label>
 
         <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting ? <span className="spinner" /> : <Plus size={16} />}
           {submitting ? 'Creating…' : 'Create job'}
         </button>
       </form>

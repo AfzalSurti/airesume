@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Sparkles } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { ThemeToggle } from '../components/ThemeToggle'
 
@@ -29,7 +30,12 @@ export default function LoginPage() {
     <div className="auth-page">
       <ThemeToggle className="auth-theme-toggle" />
       <form className="auth-card" onSubmit={handleSubmit}>
-        <h1>AI Recruiter</h1>
+        <div className="auth-brand">
+          <div className="brand-mark">
+            <Sparkles size={17} />
+          </div>
+          <span className="brand-name">AI Recruiter</span>
+        </div>
         <p className="auth-subtitle">Sign in to your organization</p>
 
         {error && <div className="alert alert-error">{error}</div>}

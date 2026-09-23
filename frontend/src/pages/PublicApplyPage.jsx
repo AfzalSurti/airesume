@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { CheckCircle2, Send, Sparkles } from 'lucide-react'
 import { API_URL } from '../api/client'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { Spinner } from '../components/Spinner'
 
 export default function PublicApplyPage() {
   const { slug } = useParams()
@@ -111,7 +113,7 @@ export default function PublicApplyPage() {
         <div className="page-topbar">
           <ThemeToggle />
         </div>
-        <p className="text-muted">Loading…</p>
+        <Spinner label="Loading application form…" />
       </div>
     )
   }
@@ -122,7 +124,8 @@ export default function PublicApplyPage() {
         <div className="page-topbar">
           <ThemeToggle />
         </div>
-        <div className="card">
+        <div className="card" style={{ textAlign: 'center', padding: '40px 24px' }}>
+          <CheckCircle2 size={40} color="var(--success)" style={{ marginBottom: 12 }} />
           <h1>Application submitted</h1>
           <p>Thanks for applying to {job.title}. We'll be in touch if there's a match.</p>
         </div>
@@ -136,6 +139,12 @@ export default function PublicApplyPage() {
         <ThemeToggle />
       </div>
       <div className="card">
+        <div className="auth-brand">
+          <div className="brand-mark">
+            <Sparkles size={17} />
+          </div>
+          <span className="brand-name">AI Recruiter</span>
+        </div>
         <h1>{job.title}</h1>
         <p className="text-muted">
           {job.location || 'Location not specified'} · {job.employment_type.replace('_', ' ')}
@@ -266,6 +275,7 @@ export default function PublicApplyPage() {
         ))}
 
         <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting ? <span className="spinner" /> : <Send size={15} />}
           {submitting ? 'Submitting…' : 'Submit application'}
         </button>
       </form>

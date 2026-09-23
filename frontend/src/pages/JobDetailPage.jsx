@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { FileText, HelpCircle, Users, Target, ExternalLink, Plus, Trash2, Sparkles, Inbox } from 'lucide-react'
 import { api } from '../api/client'
 import { StatusBadge } from '../components/StatusBadge'
+import { Avatar } from '../components/Avatar'
+import { ScoreRing } from '../components/ScoreRing'
+import { EmptyState } from '../components/EmptyState'
+import { Spinner } from '../components/Spinner'
+
+const TAB_ICONS = { overview: FileText, questions: HelpCircle, applicants: Users, results: Target }
 
 const QUESTION_TYPES = ['text', 'textarea', 'number', 'select', 'multiselect', 'boolean']
 const STATUSES = ['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED']
@@ -25,7 +32,7 @@ export default function JobDetailPage() {
   }, [id])
 
   if (error) return <div className="alert alert-error">{error}</div>
-  if (!job) return <p className="text-muted">Loading…</p>
+  if (!job) return <Spinner label="Loading job…" />
 
   const publicUrl = job.status === 'PUBLISHED' ? `${window.location.origin}/apply/${job.slug}` : null
 
@@ -39,16 +46,15 @@ export default function JobDetailPage() {
       </div>
 
       <div className="tabs">
-        {['overview', 'questions', 'applicants', 'results'].map((t) => (
-          <button
-            key={t}
-            className={t === tab ? 'tab active' : 'tab'}
-            onClick={() => setTab(t)}
-            type="button"
-          >
-            {t[0].toUpperCase() + t.slice(1)}
-          </button>
-        ))}
+        {['overview', 'questions', 'applicants', 'results'].map((t) => {
+          const Icon = TAB_ICONS[t]
+          return (
+            <button key={t} className={t === tab ? 'tab active' : 'tab'} onClick={() => setTab(t)} type="button">
+              <Icon size={15} />
+              {t[0].toUpperCase() + t.slice(1)}
+            </button>
+          )
+        })}
       </div>
 
       {tab === 'overview' && <OverviewTab job={job} publicUrl={publicUrl} onUpdated={setJob} />}
@@ -109,10 +115,13 @@ function OverviewTab({ job, publicUrl, onUpdated }) {
 
       {publicUrl && (
         <div className="callout">
-          <strong>Public application link:</strong>{' '}
-          <a href={publicUrl} target="_blank" rel="noreferrer">
-            {publicUrl}
-          </a>
+          <ExternalLink size={15} />
+          <span>
+            <strong>Public application link:</strong>{' '}
+            <a href={publicUrl} target="_blank" rel="noreferrer">
+              {publicUrl}
+            </a>
+          </span>
         </div>
       )}
 
@@ -188,7 +197,9 @@ function QuestionsTab({ job, onReload }) {
     <div>
       {error && <div className="alert alert-error">{error}</div>}
 
-      {job.questions.length === 0 && <p className="text-muted">No custom questions yet.</p>}
+      {job.questions.length === 0 && (
+        <EmptyState icon={HelpCircle} title="No custom questions yet" subtitle="Add one below to ask applicants more." />
+      )}
 
       {job.questions.length > 0 && (
         <table className="table">
@@ -208,6 +219,7 @@ function QuestionsTab({ job, onReload }) {
                 <td>{q.required ? 'Yes' : 'No'}</td>
                 <td>
                   <button type="button" className="btn btn-danger-outline btn-sm" onClick={() => handleDelete(q.id)}>
+                    <Trash2 size={13} />
                     Delete
                   </button>
                 </td>
@@ -262,6 +274,7 @@ function QuestionsTab({ job, onReload }) {
           </label>
         )}
         <button type="submit" className="btn btn-primary" disabled={submitting}>
+          <Plus size={15} />
           {submitting ? 'Adding…' : 'Add question'}
         </button>
       </form>
@@ -307,19 +320,24 @@ function ApplicantsTab({ jobId }) {
     }
   }
 
-  if (!applications) return <p className="text-muted">Loading…</p>
+  if (!applications) return <Spinner label="Loading applicants…" />
 
   return (
     <div>
       {error && <div className="alert alert-error">{error}</div>}
-      {applications.length === 0 && <p className="text-muted">No applications yet.</p>}
+      {applications.length === 0 && (
+        <EmptyState icon={Inbox} title="No applications yet" subtitle="Applications will show up here once candidates apply." />
+      )}
 
       {applications.map((app) => (
         <div key={app.id} className="card list-card">
           <div className="list-card-row">
-            <div>
-              <strong>{app.name}</strong>
-              <div className="text-muted">{app.email}</div>
+            <div className="list-card-identity">
+              <Avatar name={app.name} size="sm" />
+              <div>
+                <strong>{app.name}</strong>
+                <div className="text-muted">{app.email}</div>
+              </div>
             </div>
             <div className="list-card-actions">
               <select value={app.status} onChange={(e) => handleStatusChange(app.id, e.target.value)}>
@@ -380,27 +398,33 @@ function ResultsTab({ jobId }) {
     }
   }
 
-  if (!results) return <p className="text-muted">Loading…</p>
+  if (!results) return <Spinner label="Loading results…" />
 
   return (
     <div>
       {error && <div className="alert alert-error">{error}</div>}
 
       <button type="button" className="btn btn-primary" onClick={handleScreen} disabled={screening}>
+        {screening ? <span className="spinner" /> : <Sparkles size={15} />}
         {screening ? 'Screening…' : 'Run AI Screening'}
       </button>
 
-      {results.length === 0 && <p className="text-muted">No screening results yet. Run screening above.</p>}
+      {results.length === 0 && (
+        <EmptyState icon={Target} title="No screening results yet" subtitle="Run AI screening above to rank applicants." />
+      )}
 
       {results.map((r) => (
         <div key={r.id} className="card list-card">
           <div className="list-card-row" onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}>
-            <div>
-              <strong>{r.name}</strong>
-              <div className="text-muted">{r.email}</div>
+            <div className="list-card-identity">
+              <Avatar name={r.name} size="sm" />
+              <div>
+                <strong>{r.name}</strong>
+                <div className="text-muted">{r.email}</div>
+              </div>
             </div>
             <div className="score-cell">
-              <span className="score-big">{r.overall_score}</span>
+              <ScoreRing score={r.overall_score} />
               <StatusBadge status={r.recommendation} />
             </div>
           </div>
