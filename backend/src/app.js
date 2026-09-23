@@ -7,6 +7,8 @@ const authRoutes = require('./routes/auth');
 const candidateRoutes = require('./routes/candidates');
 const resumeRoutes = require('./routes/resumes');
 const matchingRoutes = require('./routes/matching');
+const jobRoutes = require('./routes/jobs');
+const questionRoutes = require('./routes/questions');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -20,6 +22,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/candidates', candidateRoutes);
 app.use('/api/resumes', resumeRoutes);
 app.use('/api/matching', matchingRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/questions', questionRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ status: 'error', message: 'Not found' });
