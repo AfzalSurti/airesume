@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const path = require('path');
 const { pool } = require('../config/db');
 const storage = require('../services/storage');
+const resumeProcessingService = require('../services/resumeProcessingService');
 const { AppError } = require('../utils/AppError');
 
 const PDF_MAGIC_BYTES = '%PDF-';
@@ -102,7 +103,16 @@ async function uploadResume(req, res, next) {
 
     await client.query('COMMIT');
 
-    res.status(201).json({ status: 'ok', candidate, resume: rows[0] });
+    let processing;
+    try {
+      const result = await resumeProcessingService.processResume(rows[0].id);
+      processing = { status: 'ok', profile: result.profile };
+    } catch (err) {
+      console.error('Resume AI processing failed:', err.message);
+      processing = { status: 'failed', message: err.message };
+    }
+
+    res.status(201).json({ status: 'ok', candidate, resume: rows[0], processing });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     if (savedStorageKey) {
@@ -111,6 +121,27 @@ async function uploadResume(req, res, next) {
     next(err);
   } finally {
     client.release();
+  }
+}
+
+async function processResumeRoute(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const { rows } = await pool.query(
+      `SELECT r.id FROM resumes r
+       JOIN candidates c ON c.id = r.candidate_id
+       WHERE r.id = $1 AND c.organization_id = $2 AND r.deleted_at IS NULL`,
+      [id, req.user.organizationId]
+    );
+    if (!rows[0]) {
+      throw new AppError('Resume not found', 404);
+    }
+
+    const result = await resumeProcessingService.processResume(id);
+    res.json({ status: 'ok', profile: result.profile });
+  } catch (err) {
+    next(err);
   }
 }
 
@@ -212,4 +243,4 @@ async function deleteResume(req, res, next) {
   }
 }
 
-module.exports = { uploadResume, listCandidateResumes, downloadResume, deleteResume };
+module.exports = { uploadResume, processResumeRoute, listCandidateResumes, downloadResume, deleteResume };
