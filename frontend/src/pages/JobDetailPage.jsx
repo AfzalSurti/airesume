@@ -113,7 +113,7 @@ function OverviewTab({ job, publicUrl, onUpdated }) {
         </div>
       </div>
 
-      {publicUrl && (
+      {publicUrl ? (
         <div className="callout">
           <ExternalLink size={15} />
           <span>
@@ -121,6 +121,14 @@ function OverviewTab({ job, publicUrl, onUpdated }) {
             <a href={publicUrl} target="_blank" rel="noreferrer">
               {publicUrl}
             </a>
+          </span>
+        </div>
+      ) : (
+        <div className="callout">
+          <ExternalLink size={15} />
+          <span>
+            Set status to <strong>PUBLISHED</strong> above to generate a public application link candidates can apply
+            through.
           </span>
         </div>
       )}
