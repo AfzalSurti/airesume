@@ -12,6 +12,10 @@ const questionRoutes = require('./routes/questions');
 const applicationRoutes = require('./routes/applications');
 const screeningResultRoutes = require('./routes/screeningResults');
 const publicRoutes = require('./routes/public');
+const userRoutes = require('./routes/users');
+const documentRequirementRoutes = require('./routes/documentRequirements');
+const pipelineRoutes = require('./routes/pipelines');
+const publicPipelineRoutes = require('./routes/publicPipeline');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -30,6 +34,10 @@ app.use('/api/questions', questionRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/screening-results', screeningResultRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/document-requirements', documentRequirementRoutes);
+app.use('/api/pipelines', pipelineRoutes);
+app.use('/api/public/pipeline', publicPipelineRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ status: 'error', message: 'Not found' });
