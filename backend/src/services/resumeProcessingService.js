@@ -43,12 +43,19 @@ async function processResume(resumeId) {
   if (resume.is_active) {
     await pool.query(
       `UPDATE candidates SET
-         structured_profile = $1::jsonb,
-         total_experience = COALESCE($2, total_experience),
-         education_summary = COALESCE($3, education_summary),
+         name = COALESCE($1, name),
+         structured_profile = $2::jsonb,
+         total_experience = COALESCE($3, total_experience),
+         education_summary = COALESCE($4, education_summary),
          updated_at = now()
-       WHERE id = $4`,
-      [JSON.stringify(profile), profile.total_experience_years, summarizeEducation(profile.education), resume.candidate_id]
+       WHERE id = $5`,
+      [
+        profile.name,
+        JSON.stringify(profile),
+        profile.total_experience_years,
+        summarizeEducation(profile.education),
+        resume.candidate_id,
+      ]
     );
   }
 

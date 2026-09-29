@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Search, Users } from 'lucide-react'
+import { Search, Users, Upload } from 'lucide-react'
 import { api } from '../api/client'
 import { Avatar } from '../components/Avatar'
 import { EmptyState } from '../components/EmptyState'
@@ -50,6 +50,10 @@ export default function CandidatesListPage() {
     <div>
       <div className="page-header">
         <h1>Candidate Pool</h1>
+        <Link to="/candidates/upload" className="btn btn-primary">
+          <Upload size={16} />
+          Upload Resumes
+        </Link>
       </div>
 
       <div className="toolbar">

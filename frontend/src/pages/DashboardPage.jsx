@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, Briefcase, FolderOpen, Plus, Search } from 'lucide-react'
+import { Users, Briefcase, FolderOpen, Plus, Search, Upload } from 'lucide-react'
 import { api } from '../api/client'
 import { useAuth } from '../hooks/useAuth'
 
@@ -65,6 +65,10 @@ export default function DashboardPage() {
         <Link to="/jobs/new" className="btn btn-primary">
           <Plus size={16} />
           New Job
+        </Link>
+        <Link to="/candidates/upload" className="btn btn-secondary">
+          <Upload size={16} />
+          Upload Resumes
         </Link>
         <Link to="/matching" className="btn btn-secondary">
           <Search size={16} />

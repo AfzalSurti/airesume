@@ -5,7 +5,16 @@ const { saveResumeVersion } = require('../services/resumeStorageService');
 const { assertValidPdf } = require('../utils/pdfValidation');
 const { AppError } = require('../utils/AppError');
 
-async function findOrCreateCandidate(client, organizationId, body) {
+function deriveNameFromFilename(originalname) {
+  const withoutExt = originalname.replace(/\.[^/.]+$/, '');
+  const cleaned = withoutExt
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned || 'Unnamed Candidate';
+}
+
+async function findOrCreateCandidate(client, organizationId, body, file) {
   const { candidateId, name, email, phone, location, linkedinUrl, githubUrl, portfolioUrl } = body;
 
   if (candidateId) {
@@ -19,9 +28,10 @@ async function findOrCreateCandidate(client, organizationId, body) {
     return rows[0];
   }
 
-  if (!name) {
-    throw new AppError('name is required when candidateId is not provided', 400);
-  }
+  // Bulk resume-pool uploads don't know the candidate's name upfront - fall back to the
+  // filename so a candidate record can still be created. Resume AI processing (below)
+  // overwrites this with the real name extracted from the resume once parsing completes.
+  const effectiveName = name || deriveNameFromFilename(file.originalname);
 
   const normalizedEmail = email ? email.toLowerCase().trim() : null;
 
@@ -41,7 +51,7 @@ async function findOrCreateCandidate(client, organizationId, body) {
      RETURNING *`,
     [
       organizationId,
-      name.trim(),
+      effectiveName.trim(),
       normalizedEmail,
       phone || null,
       location || null,
@@ -62,7 +72,7 @@ async function uploadResume(req, res, next) {
 
     await client.query('BEGIN');
 
-    const candidate = await findOrCreateCandidate(client, req.user.organizationId, req.body);
+    const candidate = await findOrCreateCandidate(client, req.user.organizationId, req.body, req.file);
 
     const { resume, storageKey } = await saveResumeVersion(client, candidate.id, req.file);
     savedStorageKey = storageKey;
