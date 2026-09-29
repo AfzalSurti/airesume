@@ -241,4 +241,29 @@ async function submitDocuments(req, res, next) {
   }
 }
 
-module.exports = { getPublicPipeline, uploadDocument, deleteDocument, addExperience, deleteExperience, submitDocuments };
+async function downloadOfferLetter(req, res, next) {
+  try {
+    const { token } = req.params;
+    const pipeline = await getPipelineByToken(token);
+    if (!pipeline || !pipeline.offer_letter_storage_key) {
+      throw new AppError('Offer letter not found', 404);
+    }
+
+    const buffer = await storage.read(pipeline.offer_letter_storage_key);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${pipeline.offer_letter_file_name}"`);
+    res.send(buffer);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  getPublicPipeline,
+  uploadDocument,
+  deleteDocument,
+  addExperience,
+  deleteExperience,
+  submitDocuments,
+  downloadOfferLetter,
+};

@@ -463,7 +463,12 @@ svg {
   flex-direction: column;
   gap: 6px;
   flex: 1;
+  min-width: 0;
   margin-bottom: 14px;
+}
+
+.field input[type='file'] {
+  min-width: 0;
 }
 
 .field > span,
@@ -478,6 +483,10 @@ svg {
 .field-row {
   display: flex;
   gap: 16px;
+  flex-wrap: wrap;
+}
+.field-row > .field {
+  min-width: 160px;
 }
 
 .checkbox-field {
@@ -923,9 +932,26 @@ input[type='file'] {
   background: var(--danger-bg);
   color: var(--danger);
 }
-.badge-screening {
+.badge-screening,
+.badge-forwarded-to-hod,
+.badge-interview-scheduled,
+.badge-offer-sent {
   background: var(--accent-bg);
   color: var(--accent);
+}
+.badge-docs-requested,
+.badge-docs-submitted {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.badge-hod-selected,
+.badge-completed {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.badge-hod-rejected {
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 /* Spinner */

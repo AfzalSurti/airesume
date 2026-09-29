@@ -58,7 +58,7 @@ async function requestDocuments(req, res, next) {
       pipeline = rows[0];
     }
 
-    const link = `${FRONTEND_URL}/pipeline/${pipeline.document_token}`;
+    const link = `${FRONTEND_URL}/documents/${pipeline.document_token}`;
     const emailResult = await sendEmail({
       to: application.candidate_email,
       subject: `Documents required - ${application.job_title}`,
@@ -162,7 +162,7 @@ async function forwardToHod(req, res, next) {
         <p>Hi ${hod.name},</p>
         <p><strong>${pipeline.candidate_name}</strong> has been forwarded to you for the
         <strong>${pipeline.job_title}</strong> role. Documents have been reviewed by HR.</p>
-        <p>Sign in to schedule an interview: <a href="${FRONTEND_URL}/hod">${FRONTEND_URL}/hod</a></p>
+        <p>Sign in to schedule an interview: <a href="${FRONTEND_URL}/pipeline">${FRONTEND_URL}/pipeline</a></p>
       `,
       organizationId: req.user.organizationId,
       hiringPipelineId: id,
@@ -287,7 +287,7 @@ async function sendOffer(req, res, next) {
       [storageKey, req.file.originalname, id]
     );
 
-    const link = `${FRONTEND_URL}/pipeline/${pipeline.document_token}`;
+    const link = `${FRONTEND_URL}/documents/${pipeline.document_token}`;
     const emailResult = await sendEmail({
       to: pipeline.candidate_email,
       subject: `Offer letter - ${pipeline.job_title}`,
@@ -380,6 +380,44 @@ async function downloadPipelineDocument(req, res, next) {
   }
 }
 
+const EXPERIENCE_FILE_FIELDS = {
+  experienceLetter: { key: 'experience_letter_key', name: 'experience_letter_file_name' },
+  offerLetter: { key: 'offer_letter_key', name: 'offer_letter_file_name' },
+  appointmentLetter: { key: 'appointment_letter_key', name: 'appointment_letter_file_name' },
+};
+
+async function downloadExperienceFile(req, res, next) {
+  try {
+    const { id, experienceId, field } = req.params;
+    const columns = EXPERIENCE_FILE_FIELDS[field];
+    if (!columns) {
+      throw new AppError('Invalid file field', 400);
+    }
+
+    const pipeline = await getPipelineWithContext(id, req.user.organizationId);
+    if (!pipeline) {
+      throw new AppError('Pipeline not found', 404);
+    }
+
+    const { rows } = await pool.query(
+      `SELECT ${columns.key} AS storage_key, ${columns.name} AS file_name
+       FROM pipeline_experience_entries WHERE id = $1 AND hiring_pipeline_id = $2`,
+      [experienceId, id]
+    );
+    const entry = rows[0];
+    if (!entry || !entry.storage_key) {
+      throw new AppError('File not found', 404);
+    }
+
+    const buffer = await storage.read(entry.storage_key);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${entry.file_name}"`);
+    res.send(buffer);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function downloadOfferLetter(req, res, next) {
   try {
     const { id } = req.params;
@@ -409,4 +447,5 @@ module.exports = {
   completePipeline,
   downloadPipelineDocument,
   downloadOfferLetter,
+  downloadExperienceFile,
 };

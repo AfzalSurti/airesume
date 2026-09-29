@@ -13,6 +13,10 @@ import CandidateDetailPage from './pages/CandidateDetailPage'
 import BulkUploadPage from './pages/BulkUploadPage'
 import MatchingPage from './pages/MatchingPage'
 import PublicApplyPage from './pages/PublicApplyPage'
+import PipelinesPage from './pages/PipelinesPage'
+import PipelineDetailPage from './pages/PipelineDetailPage'
+import SettingsPage from './pages/SettingsPage'
+import PublicPipelinePage from './pages/PublicPipelinePage'
 
 function App() {
   return (
@@ -21,6 +25,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/apply/:slug" element={<PublicApplyPage />} />
+        <Route path="/documents/:token" element={<PublicPipelinePage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
@@ -32,6 +37,9 @@ function App() {
             <Route path="/candidates/upload" element={<BulkUploadPage />} />
             <Route path="/candidates/:id" element={<CandidateDetailPage />} />
             <Route path="/matching" element={<MatchingPage />} />
+            <Route path="/pipeline" element={<PipelinesPage />} />
+            <Route path="/pipeline/:id" element={<PipelineDetailPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Route>
 

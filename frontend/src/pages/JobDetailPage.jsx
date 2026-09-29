@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { FileText, HelpCircle, Users, Target, ExternalLink, Plus, Trash2, Sparkles, Inbox } from 'lucide-react'
+import { Link, useParams } from 'react-router-dom'
+import { FileText, HelpCircle, Users, Target, ExternalLink, Plus, Trash2, Sparkles, Inbox, Send, GitBranch } from 'lucide-react'
 import { api } from '../api/client'
 import { StatusBadge } from '../components/StatusBadge'
 import { Avatar } from '../components/Avatar'
@@ -328,6 +328,15 @@ function ApplicantsTab({ jobId }) {
     }
   }
 
+  async function handleRequestDocuments(appId) {
+    try {
+      await api.post(`/api/applications/${appId}/pipeline/request-documents`)
+      load()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   if (!applications) return <Spinner label="Loading applicants…" />
 
   return (
@@ -358,6 +367,17 @@ function ApplicantsTab({ jobId }) {
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => toggleExpand(app.id)}>
                 {expandedId === app.id ? 'Hide' : 'View answers'}
               </button>
+              {app.pipeline_id ? (
+                <Link to={`/pipeline/${app.pipeline_id}`} className="btn btn-secondary btn-sm">
+                  <GitBranch size={13} />
+                  View Pipeline
+                </Link>
+              ) : (
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => handleRequestDocuments(app.id)}>
+                  <Send size={13} />
+                  Request Documents
+                </button>
+              )}
             </div>
           </div>
 

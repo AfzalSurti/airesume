@@ -14,6 +14,7 @@ const {
   completePipeline,
   downloadPipelineDocument,
   downloadOfferLetter,
+  downloadExperienceFile,
 } = require('../controllers/pipelineController');
 
 const router = express.Router();
@@ -31,5 +32,6 @@ router.post('/:id/documents/:documentId/verify', authorize(ROLES.ADMIN, ROLES.HR
 router.post('/:id/complete', authorize(ROLES.ADMIN, ROLES.HR), completePipeline);
 
 router.get('/documents/:documentId/file', downloadPipelineDocument);
+router.get('/:id/experience/:experienceId/:field/file', downloadExperienceFile);
 
 module.exports = router;

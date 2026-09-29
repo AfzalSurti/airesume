@@ -11,7 +11,7 @@ function getAccessToken() {
   return accessToken
 }
 
-async function refreshAccessToken() {
+async function doRefresh() {
   const res = await fetch(`${API_URL}/api/auth/refresh`, {
     method: 'POST',
     credentials: 'include',
@@ -23,6 +23,19 @@ async function refreshAccessToken() {
   const data = await res.json()
   accessToken = data.accessToken
   return accessToken
+}
+
+// Refresh tokens rotate on every use (the old one is revoked as soon as a new one is
+// issued), so two concurrent callers - e.g. React StrictMode double-invoking an effect -
+// must never both hit the endpoint with the same token. Coalesce all concurrent callers
+// into a single in-flight request.
+function refreshAccessToken() {
+  if (!refreshPromise) {
+    refreshPromise = doRefresh().finally(() => {
+      refreshPromise = null
+    })
+  }
+  return refreshPromise
 }
 
 async function authedFetch(path, { method = 'GET', body, isForm = false } = {}) {
@@ -42,12 +55,7 @@ async function authedFetch(path, { method = 'GET', body, isForm = false } = {}) 
 
   if (res.status === 401 && accessToken) {
     try {
-      if (!refreshPromise) {
-        refreshPromise = refreshAccessToken().finally(() => {
-          refreshPromise = null
-        })
-      }
-      await refreshPromise
+      await refreshAccessToken()
       headers.Authorization = `Bearer ${accessToken}`
       res = await doFetch()
     } catch {

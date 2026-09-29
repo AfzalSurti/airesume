@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, Briefcase, Users, Search, Sparkles, LogOut } from 'lucide-react'
+import { LayoutDashboard, Briefcase, Users, Search, Sparkles, LogOut, GitBranch, Settings } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { ThemeToggle } from './ThemeToggle'
 import { Avatar } from './Avatar'
@@ -9,7 +9,10 @@ const NAV_ITEMS = [
   { to: '/jobs', label: 'Jobs', icon: Briefcase },
   { to: '/candidates', label: 'Candidates', icon: Users },
   { to: '/matching', label: 'JD Search', icon: Search },
+  { to: '/pipeline', label: 'Pipeline', icon: GitBranch },
 ]
+
+const SETTINGS_ROLES = ['ADMIN', 'HR']
 
 export function Layout() {
   const { user, logout } = useAuth()
@@ -31,6 +34,12 @@ export function Layout() {
               {label}
             </NavLink>
           ))}
+          {SETTINGS_ROLES.includes(user?.role) && (
+            <NavLink to="/settings" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+              <Settings size={17} />
+              Settings
+            </NavLink>
+          )}
         </nav>
 
         <div className="sidebar-footer">

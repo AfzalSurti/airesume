@@ -16,9 +16,10 @@ async function listJobApplications(req, res, next) {
     }
 
     const { rows } = await pool.query(
-      `SELECT a.*, c.name, c.email, c.phone
+      `SELECT a.*, c.name, c.email, c.phone, p.id AS pipeline_id, p.stage AS pipeline_stage
        FROM applications a
        JOIN candidates c ON c.id = a.candidate_id
+       LEFT JOIN hiring_pipelines p ON p.application_id = a.id
        WHERE a.job_id = $1
        ORDER BY a.submitted_at DESC`,
       [jobId]
