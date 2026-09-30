@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { FileText, Eye, CheckCircle2, Send, Calendar, Award, Briefcase } from 'lucide-react'
+import { FileText, Eye, CheckCircle2, Send, Calendar, Award, Briefcase, ExternalLink } from 'lucide-react'
 import { api } from '../api/client'
 import { useAuth } from '../hooks/useAuth'
 import { StatusBadge } from '../components/StatusBadge'
@@ -13,6 +13,7 @@ export default function PipelineDetailPage() {
   const [pipeline, setPipeline] = useState(null)
   const [hodUsers, setHodUsers] = useState([])
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState(null)
 
   function load() {
     api
@@ -63,6 +64,23 @@ export default function PipelineDetailPage() {
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
+
+      {notice && (
+        <div className="callout">
+          <ExternalLink size={15} />
+          <span>{notice}</span>
+        </div>
+      )}
+
+      <div className="callout">
+        <ExternalLink size={15} />
+        <span>
+          Candidate document link:{' '}
+          <a href={`${window.location.origin}/documents/${pipeline.document_token}`} target="_blank" rel="noreferrer">
+            {`${window.location.origin}/documents/${pipeline.document_token}`}
+          </a>
+        </span>
+      </div>
 
       <h2>Documents</h2>
       {pipeline.documents.length === 0 && <p className="text-muted">No documents submitted yet.</p>}
@@ -175,7 +193,7 @@ export default function PipelineDetailPage() {
       )}
 
       {isHodLike && pipeline.stage === 'FORWARDED_TO_HOD' && (
-        <ScheduleInterviewAction pipelineId={id} onDone={load} setError={setError} />
+        <ScheduleInterviewAction pipelineId={id} onDone={load} setError={setError} setNotice={setNotice} />
       )}
 
       {isHodLike && pipeline.stage === 'INTERVIEW_SCHEDULED' && (
@@ -183,7 +201,7 @@ export default function PipelineDetailPage() {
       )}
 
       {isHrLike && pipeline.stage === 'HOD_SELECTED' && (
-        <SendOfferAction pipelineId={id} onDone={load} setError={setError} />
+        <SendOfferAction pipelineId={id} onDone={load} setError={setError} setNotice={setNotice} />
       )}
 
       {isHrLike && pipeline.stage === 'OFFER_SENT' && (
@@ -255,7 +273,7 @@ function ForwardToHodAction({ pipelineId, hodUsers, onDone, setError }) {
   )
 }
 
-function ScheduleInterviewAction({ pipelineId, onDone, setError }) {
+function ScheduleInterviewAction({ pipelineId, onDone, setError, setNotice }) {
   const [form, setForm] = useState({ interviewDate: '', interviewTime: '', interviewLocation: '' })
   const [submitting, setSubmitting] = useState(false)
 
@@ -263,7 +281,12 @@ function ScheduleInterviewAction({ pipelineId, onDone, setError }) {
     e.preventDefault()
     setSubmitting(true)
     try {
-      await api.post(`/api/pipelines/${pipelineId}/schedule-interview`, form)
+      const data = await api.post(`/api/pipelines/${pipelineId}/schedule-interview`, form)
+      setNotice(
+        data.emailStatus === 'SENT'
+          ? 'Interview scheduled - the candidate has been emailed.'
+          : 'Interview scheduled, but the notification email could not be sent (not configured yet) - let the candidate know directly.'
+      )
       onDone()
     } catch (err) {
       setError(err.message)
@@ -353,7 +376,7 @@ function DecisionAction({ pipelineId, onDone, setError }) {
   )
 }
 
-function SendOfferAction({ pipelineId, onDone, setError }) {
+function SendOfferAction({ pipelineId, onDone, setError, setNotice }) {
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const fileInputRef = useRef(null)
@@ -370,7 +393,12 @@ function SendOfferAction({ pipelineId, onDone, setError }) {
       const formData = new FormData()
       formData.append('offerLetter', file)
       formData.append('message', message)
-      await api.post(`/api/pipelines/${pipelineId}/offer`, formData, { isForm: true })
+      const data = await api.post(`/api/pipelines/${pipelineId}/offer`, formData, { isForm: true })
+      setNotice(
+        data.emailStatus === 'SENT'
+          ? 'Offer sent - the candidate has been emailed.'
+          : 'Offer saved, but the email could not be sent (not configured yet) - share the offer link with the candidate directly.'
+      )
       onDone()
     } catch (err) {
       setError(err.message)

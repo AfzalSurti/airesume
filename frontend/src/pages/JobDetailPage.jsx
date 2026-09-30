@@ -295,6 +295,7 @@ function ApplicantsTab({ jobId }) {
   const [expandedId, setExpandedId] = useState(null)
   const [detail, setDetail] = useState(null)
   const [error, setError] = useState('')
+  const [requestedLink, setRequestedLink] = useState(null)
 
   function load() {
     api
@@ -330,7 +331,8 @@ function ApplicantsTab({ jobId }) {
 
   async function handleRequestDocuments(appId) {
     try {
-      await api.post(`/api/applications/${appId}/pipeline/request-documents`)
+      const data = await api.post(`/api/applications/${appId}/pipeline/request-documents`)
+      setRequestedLink({ appId, link: data.link, emailStatus: data.emailStatus })
       load()
     } catch (err) {
       setError(err.message)
@@ -390,6 +392,24 @@ function ApplicantsTab({ jobId }) {
                   <span>{a.answer_text || JSON.stringify(a.answer_json)}</span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {requestedLink?.appId === app.id && (
+            <div className="expanded-detail">
+              <div className="callout">
+                <ExternalLink size={15} />
+                <span>
+                  {requestedLink.emailStatus === 'SENT' ? (
+                    'Email sent to the candidate. '
+                  ) : (
+                    <strong>Email could not be sent (not configured yet) - share this link manually: </strong>
+                  )}
+                  <a href={requestedLink.link} target="_blank" rel="noreferrer">
+                    {requestedLink.link}
+                  </a>
+                </span>
+              </div>
             </div>
           )}
         </div>
