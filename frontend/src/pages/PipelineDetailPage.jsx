@@ -189,7 +189,7 @@ export default function PipelineDetailPage() {
       )}
 
       {isHrLike && (pipeline.stage === 'DOCS_REQUESTED' || pipeline.stage === 'DOCS_SUBMITTED') && (
-        <ForwardToHodAction pipelineId={id} hodUsers={hodUsers} onDone={load} setError={setError} />
+        <ForwardToHodAction pipelineId={id} hodUsers={hodUsers} onDone={load} setError={setError} setNotice={setNotice} />
       )}
 
       {isHodLike && pipeline.stage === 'FORWARDED_TO_HOD' && (
@@ -225,7 +225,7 @@ export default function PipelineDetailPage() {
   )
 }
 
-function ForwardToHodAction({ pipelineId, hodUsers, onDone, setError }) {
+function ForwardToHodAction({ pipelineId, hodUsers, onDone, setError, setNotice }) {
   const [hodUserId, setHodUserId] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -233,7 +233,12 @@ function ForwardToHodAction({ pipelineId, hodUsers, onDone, setError }) {
     e.preventDefault()
     setSubmitting(true)
     try {
-      await api.post(`/api/pipelines/${pipelineId}/forward-to-hod`, { hodUserId })
+      const data = await api.post(`/api/pipelines/${pipelineId}/forward-to-hod`, { hodUserId })
+      setNotice(
+        data.emailStatus === 'SENT'
+          ? 'Forwarded - the HOD has been emailed.'
+          : 'Forwarded, but the notification email could not be sent (not configured yet) - let the HOD know directly.'
+      )
       onDone()
     } catch (err) {
       setError(err.message)

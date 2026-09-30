@@ -155,7 +155,7 @@ async function forwardToHod(req, res, next) {
       [hod.id, id]
     );
 
-    await sendEmail({
+    const emailResult = await sendEmail({
       to: hod.email,
       subject: `Candidate ready for review - ${pipeline.job_title}`,
       html: `
@@ -168,7 +168,7 @@ async function forwardToHod(req, res, next) {
       hiringPipelineId: id,
     });
 
-    res.json({ status: 'ok', pipeline: rows[0] });
+    res.json({ status: 'ok', pipeline: rows[0], emailStatus: emailResult.status });
   } catch (err) {
     next(err);
   }
