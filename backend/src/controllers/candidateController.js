@@ -31,7 +31,8 @@ async function listCandidates(req, res, next) {
 
     const { rows } = await pool.query(
       `SELECT c.*,
-        (SELECT COUNT(*) FROM resumes r WHERE r.candidate_id = c.id AND r.deleted_at IS NULL)::int AS resume_count
+        (SELECT COUNT(*) FROM resumes r WHERE r.candidate_id = c.id AND r.deleted_at IS NULL)::int AS resume_count,
+        COUNT(*) OVER()::int AS total_count
        FROM candidates c
        WHERE c.organization_id = $1 AND ${deletedClause}
          AND ($2::text IS NULL OR c.name ILIKE $2 OR c.email ILIKE $2)
@@ -42,19 +43,13 @@ async function listCandidates(req, res, next) {
       [req.user.organizationId, search, minExperience, maxExperience, pageSize, offset]
     );
 
-    const countResult = await pool.query(
-      `SELECT COUNT(*)::int AS total FROM candidates c
-       WHERE c.organization_id = $1 AND ${deletedClause}
-         AND ($2::text IS NULL OR c.name ILIKE $2 OR c.email ILIKE $2)
-         AND ($3::numeric IS NULL OR c.total_experience >= $3)
-         AND ($4::numeric IS NULL OR c.total_experience <= $4)`,
-      [req.user.organizationId, search, minExperience, maxExperience]
-    );
+    const total = rows[0]?.total_count ?? 0;
+    const candidates = rows.map(({ total_count, ...c }) => c);
 
     res.json({
       status: 'ok',
-      candidates: rows,
-      pagination: { page, pageSize, total: countResult.rows[0].total },
+      candidates,
+      pagination: { page, pageSize, total },
     });
   } catch (err) {
     next(err);

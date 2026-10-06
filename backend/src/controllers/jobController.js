@@ -103,7 +103,7 @@ async function listJobs(req, res, next) {
     const status = req.query.status && STATUSES.includes(req.query.status) ? req.query.status : null;
 
     const { rows } = await pool.query(
-      `SELECT * FROM jobs
+      `SELECT *, COUNT(*) OVER()::int AS total_count FROM jobs
        WHERE organization_id = $1 AND deleted_at IS NULL
          AND ($2::text IS NULL OR title ILIKE $2)
          AND ($3::text IS NULL OR status = $3)
@@ -112,15 +112,10 @@ async function listJobs(req, res, next) {
       [req.user.organizationId, search, status, pageSize, offset]
     );
 
-    const countResult = await pool.query(
-      `SELECT COUNT(*)::int AS total FROM jobs
-       WHERE organization_id = $1 AND deleted_at IS NULL
-         AND ($2::text IS NULL OR title ILIKE $2)
-         AND ($3::text IS NULL OR status = $3)`,
-      [req.user.organizationId, search, status]
-    );
+    const total = rows[0]?.total_count ?? 0;
+    const jobs = rows.map(({ total_count, ...j }) => j);
 
-    res.json({ status: 'ok', jobs: rows, pagination: { page, pageSize, total: countResult.rows[0].total } });
+    res.json({ status: 'ok', jobs, pagination: { page, pageSize, total } });
   } catch (err) {
     next(err);
   }
